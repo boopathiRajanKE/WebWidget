@@ -1,21 +1,16 @@
 import babel from "@rollup/plugin-babel"
 import resolve from "@rollup/plugin-node-resolve"
-import commonjs from "@rollup/plugin-commonjs"
+import commonjs from "rollup-plugin-commonjs"
 import postcss from "rollup-plugin-postcss"
 import filesize from "rollup-plugin-filesize"
 import autoprefixer from "autoprefixer"
+import replace from "rollup-plugin-replace"
 
 const INPUT_FILE_PATH = "src/index.js"
 const OUTPUT_NAME = "Example"
 
-const GLOBALS = {
-  react: "React",
-  "react-dom": "ReactDOM",
-}
-
 const PLUGINS = [
   postcss({
-    extract: true,
     plugins: [autoprefixer],
   }),
   babel({
@@ -26,11 +21,27 @@ const PLUGINS = [
     browser: true,
     resolveOnly: [/^(?!react$)/, /^(?!react-dom$)/, /^(?!prop-types)/],
   }),
-  commonjs(),
+  commonjs({
+    include: ["node_modules/**"],
+    exclude: ["node_modules/process-es6/**"],
+    namedExports: {
+      "node_modules/react/index.js": [
+        "Children",
+        "Component",
+        "PropTypes",
+        "createElement",
+        "useState",
+        "useCallback",
+        "useEffect",
+      ],
+      "node_modules/react-dom/index.js": ["render"],
+    },
+  }),
   filesize(),
+  replace({
+    "process.env.NODE_ENV": JSON.stringify("production"),
+  }),
 ]
-
-const EXTERNAL = ["react", "react-dom"]
 
 const config = {
   input: INPUT_FILE_PATH,
@@ -38,9 +49,8 @@ const config = {
     file: "build/callus.js",
     format: "iife",
     name: OUTPUT_NAME,
-    globals: GLOBALS,
   },
-  external: EXTERNAL,
+
   plugins: PLUGINS,
 }
 
